@@ -10,46 +10,23 @@ export class VoiceAgentClient {
     this.audioPlayer = null
     this.isConnected = false
     this.isMuted = false
-    this.assemblyAiKey = null
-    this.groqKey = null
   }
 
-  async connect(assemblyAiKey, groqKey) {
+  async connect() {
     if (this.isConnected) return
 
-    this.assemblyAiKey =
-      assemblyAiKey ||
-      import.meta.env.VITE_ASSEMBLYAI_API_KEY ||
-      localStorage.getItem('echoform_aai_key')
-
-    this.groqKey =
-      groqKey ||
-      import.meta.env.VITE_GROQ_API_KEY ||
-      localStorage.getItem('echoform_groq_key')
-
-    if (!this.assemblyAiKey) {
-      throw new Error('AssemblyAI API Key is required. Please add it in settings or .env.')
-    }
-    if (!this.groqKey) {
-      throw new Error('Groq API Key is required. Please add it in settings or .env.')
-    }
-
     useRoomStore.getState().setVoiceState({
-      lastAgentReply: 'Minting secure temporary token...',
+      lastAgentReply: 'Connecting to AssemblyAI Voice Agent...',
     })
 
-    // 1. Fetch short-lived token from backend middleware
-    const token = await this.fetchToken(this.assemblyAiKey)
-
-    useRoomStore.getState().setVoiceState({
-      lastAgentReply: 'Connecting to AssemblyAI Voice Agent WebSocket...',
-    })
+    // 1. Fetch short-lived token from serverless endpoint (no keys exposed to client)
+    const token = await this.fetchToken()
 
     // 2. Open WebSocket connection
-    const wsUrl = `wss://agents.assemblyai.com/v1/ws?token=${token}`
+    const wsUrl = `wss://agents.assemblyai.com/v1/ws?token=${encodeURIComponent(token)}`
     this.ws = new WebSocket(wsUrl)
 
-    // 3. Setup Audio Player for Agent Speech
+    // 3. Setup Audio Player for Agent Speech (24kHz mono PCM)
     this.audioPlayer = new AudioPlayer((agentVolume) => {
       useRoomStore.getState().setAudioLevel(agentVolume)
       useRoomStore.getState().setVoiceState({ isSpeaking: agentVolume > 0.05 })
@@ -68,7 +45,6 @@ export class VoiceAgentClient {
         }
       },
       (micVolume) => {
-        // Microphone volume for real-time 3D visualizer and soundwave HUD
         useRoomStore.getState().setAudioLevel(micVolume)
         useRoomStore.getState().setVoiceState({ isListening: micVolume > 0.05 })
       }
@@ -76,7 +52,7 @@ export class VoiceAgentClient {
 
     return new Promise((resolve, reject) => {
       this.ws.onopen = async () => {
-        console.log('[VoiceAgentClient] WebSocket Connected!')
+        console.log('[VoiceAgentClient] WebSocket Connected to AssemblyAI!')
         this.sendSessionUpdate()
       }
 
@@ -93,7 +69,7 @@ export class VoiceAgentClient {
         console.error('[VoiceAgentClient] WebSocket Error:', err)
         useRoomStore.getState().setVoiceState({
           isConnected: false,
-          lastAgentReply: 'Connection error. Check API keys and network.',
+          lastAgentReply: 'AssemblyAI connection failed. Ensure ASSEMBLYAI_API_KEY is in .env',
         })
         reject(err)
       }
@@ -105,37 +81,56 @@ export class VoiceAgentClient {
     })
   }
 
-  async fetchToken(apiKey) {
-    const res = await fetch('/api/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey }),
-    })
+  async fetchToken() {
+    let res = await fetch('/api/voice-agent-token')
+    if (!res.ok) {
+      // Fallback to /api/token
+      res = await fetch('/api/token')
+    }
 
     if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error || 'Failed to mint AssemblyAI token')
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Failed to mint AssemblyAI temporary token. Check .env configuration.')
     }
 
     const data = await res.json()
+    if (!data.token) {
+      throw new Error('AssemblyAI returned no token')
+    }
     return data.token
   }
 
   sendSessionUpdate() {
-    const sessionConfig = {
-      greeting: 'Hello! I am EchoForm, your spatial staging agent. How can I help style the room today?',
-      system_prompt: `You are EchoForm, an elite architectural interior staging agent. You help users style and customize their 3D modern living room in real time.
+    const greetingText =
+      "Hello! I am EchoForm, your spatial interior designer. What style inspires you today — sleek modern minimalist or warm vintage mid-century? And what color palette do you envision for your room?"
 
-When the user asks to change furniture, lighting, or camera angles, call the appropriate tool immediately and give a concise, sophisticated confirmation (1-2 sentences max).
+    const payload = {
+      type: 'session.update',
+      session: {
+        system_prompt: `You are EchoForm, a world-class architectural interior designer and spatial staging agent.
+You proactively consult with the user to design their 3D living room in real-time.
 
-Available options:
+Key Behavioral Guidelines:
+1. Always offer curated options (e.g., "Do you like a modern minimalist vibe or warm vintage mid-century? What colors do you prefer?").
+2. Whenever the user indicates a preference for furniture material, shape, lighting atmosphere, or camera angle, immediately call the corresponding tool.
+3. Keep spoken replies concise, enthusiastic, and sophisticated (1-2 sentences maximum).
+4. After making a change, proactively suggest the next aesthetic element to adjust (e.g., "I've set the sofa to warm bouclé. Would you like a Nordic oak or black marble coffee table to complement it?").
+
+Available Options & Tools:
 - Sofa materials: boucle, leather, velvet, charcoal, emerald.
-- Coffee table materials: marble (white), black_marble, oak, walnut, smoked_glass. Shape: oval, rectangle.
+- Coffee table materials: marble, black_marble, oak, walnut, smoked_glass. Shape: oval, rectangle.
 - Lighting presets: golden_hour, daylight, moody_night, cyberpunk_neon.
 - Camera views: overview, sofa_focus, overhead_plan, window_view.
 - Fixtures: floor_lamp (on/off), plant (on/off).`,
-      voice: 'ivy',
-      tools: [
+        greeting: greetingText,
+        input: {
+          format: { encoding: 'audio/pcm' },
+        },
+        output: {
+          voice: 'anna',
+          format: { encoding: 'audio/pcm' },
+        },
+        tools: [
           {
             type: 'function',
             name: 'update_furniture',
@@ -213,20 +208,7 @@ Available options:
             },
           },
         ],
-      }
-
-    // Attach BYO-LLM if a valid Groq key is provided
-    if (this.groqKey && this.groqKey.trim()) {
-      sessionConfig.llm = {
-        base_url: 'https://api.groq.com/openai/v1',
-        model: 'llama-3.3-70b-versatile',
-        api_key: this.groqKey.trim(),
-      }
-    }
-
-    const payload = {
-      type: 'session.update',
-      session: sessionConfig,
+      },
     }
 
     console.log('[VoiceAgentClient] Sending session.update:', payload)
@@ -252,16 +234,20 @@ Available options:
         this.isConnected = true
         useRoomStore.getState().setVoiceState({
           isConnected: true,
-          lastAgentReply: "I'm listening. Ask me to change materials, lighting, or views.",
+          lastAgentReply: "I'm listening. Ask me about modern or vintage styles, colors, and lighting.",
         })
-        // Start capturing microphone input
+        // Record greeting in workspace history
+        useRoomStore.getState().addTranscriptToHistory(
+          'agent',
+          "Hello! I am EchoForm, your spatial interior designer. What style inspires you today — sleek modern minimalist or warm vintage mid-century?"
+        )
+        // Start microphone
         await this.audioCapture.start()
         if (onReadyResolve) onReadyResolve()
         break
       }
 
       case 'reply.audio': {
-        // Stream incoming agent speech to speakers
         if (msg.audio) {
           useRoomStore.getState().setVoiceState({ isSpeaking: true })
           this.audioPlayer.playChunk(msg.audio)
@@ -275,8 +261,7 @@ Available options:
       }
 
       case 'turn.interrupted': {
-        // Natural interruption / barge-in
-        console.log('[VoiceAgentClient] Barge-in detected: clearing playback buffer')
+        console.log('[VoiceAgentClient] Barge-in detected: clearing audio queue')
         this.audioPlayer.clearQueue()
         useRoomStore.getState().setVoiceState({ isSpeaking: false })
         break
@@ -286,20 +271,17 @@ Available options:
         if (msg.transcript) {
           if (msg.role === 'user') {
             useRoomStore.getState().setVoiceState({ lastTranscript: msg.transcript })
+            useRoomStore.getState().addTranscriptToHistory('user', msg.transcript)
           } else {
             useRoomStore.getState().setVoiceState({ lastAgentReply: msg.transcript })
+            useRoomStore.getState().addTranscriptToHistory('agent', msg.transcript)
           }
         }
         break
       }
 
       case 'tool.call': {
-        // Execute tool call and respond with tool.result
         const { call_id, name, arguments: args } = msg
-        useRoomStore.getState().setVoiceState({
-          lastToolCall: { name, args, timestamp: Date.now() },
-        })
-
         let parsedArgs = {}
         try {
           parsedArgs = typeof args === 'string' ? JSON.parse(args) : args
@@ -307,9 +289,20 @@ Available options:
           parsedArgs = args || {}
         }
 
+        useRoomStore.getState().setVoiceState({
+          lastToolCall: { name, args: parsedArgs, timestamp: Date.now() },
+        })
+
         const result = ToolDispatcher.execute(name, parsedArgs)
 
-        // Send back confirmation to AssemblyAI
+        // Add tool action to conversation history
+        useRoomStore.getState().addTranscriptToHistory(
+          'agent',
+          `[Action Applied] ${name.replace('_', ' ')}`,
+          { name, args: parsedArgs }
+        )
+
+        // Send confirmation back to AssemblyAI
         if (this.ws?.readyState === WebSocket.OPEN) {
           this.ws.send(
             JSON.stringify({
@@ -329,11 +322,11 @@ Available options:
 
   toggleMute() {
     this.isMuted = !this.isMuted
+    useRoomStore.getState().setVoiceState({ isListening: !this.isMuted })
     return this.isMuted
   }
 
   disconnect() {
-    this.isConnected = false
     if (this.audioCapture) {
       this.audioCapture.stop()
       this.audioCapture = null
@@ -343,18 +336,22 @@ Available options:
       this.audioPlayer = null
     }
     if (this.ws) {
-      this.ws.close()
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close()
+      }
       this.ws = null
     }
-
+    this.isConnected = false
+    this.isMuted = false
     useRoomStore.getState().setVoiceState({
       isConnected: false,
       isListening: false,
       isSpeaking: false,
-      lastAgentReply: 'Voice agent disconnected. Click to start session.',
+      lastAgentReply: 'Voice Agent disconnected. Click to reconnect.',
+      audioLevel: 0,
     })
+    useRoomStore.getState().setAudioLevel(0)
   }
 }
 
-// Singleton instance
 export const voiceAgent = new VoiceAgentClient()

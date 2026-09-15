@@ -76,12 +76,245 @@ export const CAMERA_VIEWS = {
   window_view: { position: [-3.2, 2.2, 3.8], target: [1.2, 1.2, -1.5] },
 }
 
+const DEFAULT_WORKSPACES = [
+  {
+    id: 'ws-nordic',
+    name: 'Nordic Sanctuary',
+    style: 'Modern Minimalist',
+    lightingPreset: 'golden_hour',
+    cameraView: 'overview',
+    furniture: {
+      sofa: { material: 'boucle', customColor: null, cushionColor: '#c2410c' },
+      table: { material: 'oak', customColor: null, shape: 'oval' },
+      rug: { style: 'cream_geometric' },
+      lamp: { isOn: true, intensity: 1.5, color: '#ffddaa' },
+      plant: { isVisible: true, type: 'monstera' },
+    },
+    history: [
+      {
+        id: 'h-1',
+        role: 'agent',
+        text: "Welcome to EchoForm 3D! I'm your spatial interior designer. What style inspires you today — sleek modern minimalist or warm vintage mid-century?",
+        timestamp: '10:00 AM',
+      },
+      {
+        id: 'h-2',
+        role: 'user',
+        text: 'I want a calm Nordic sanctuary with warm textures and afternoon sunlight.',
+        timestamp: '10:01 AM',
+      },
+      {
+        id: 'h-3',
+        role: 'agent',
+        text: 'Staging a warm bouclé sofa paired with a white oak oval coffee table bathed in golden hour sunbeams.',
+        timestamp: '10:01 AM',
+        toolCall: { name: 'update_furniture', args: { category: 'sofa', material: 'boucle' } },
+      },
+    ],
+  },
+  {
+    id: 'ws-cyberpunk',
+    name: 'Cyberpunk Loft',
+    style: 'Futuristic Neo-Tokyo',
+    lightingPreset: 'cyberpunk_neon',
+    cameraView: 'sofa_focus',
+    furniture: {
+      sofa: { material: 'charcoal', customColor: null, cushionColor: '#00f0ff' },
+      table: { material: 'smoked_glass', customColor: null, shape: 'rectangle' },
+      rug: { style: 'charcoal_plush' },
+      lamp: { isOn: true, intensity: 2.0, color: '#00e5ff' },
+      plant: { isVisible: false, type: 'monstera' },
+    },
+    history: [
+      {
+        id: 'h-4',
+        role: 'user',
+        text: 'Switch this room into a high-contrast Cyberpunk aesthetic with neon lighting.',
+        timestamp: 'Yesterday',
+      },
+      {
+        id: 'h-5',
+        role: 'agent',
+        text: 'Atmospheric lighting shifted to Cyberpunk Neon with smoked glass and charcoal weave.',
+        timestamp: 'Yesterday',
+        toolCall: { name: 'adjust_lighting', args: { preset: 'cyberpunk_neon' } },
+      },
+    ],
+  },
+  {
+    id: 'ws-midcentury',
+    name: 'Mid-Century Penthouse',
+    style: 'Vintage Luxury',
+    lightingPreset: 'daylight',
+    cameraView: 'window_view',
+    furniture: {
+      sofa: { material: 'leather', customColor: null, cushionColor: '#9a3412' },
+      table: { material: 'black_marble', customColor: null, shape: 'oval' },
+      rug: { style: 'terracotta' },
+      lamp: { isOn: true, intensity: 1.2, color: '#ffeecc' },
+      plant: { isVisible: true, type: 'monstera' },
+    },
+    history: [
+      {
+        id: 'h-6',
+        role: 'user',
+        text: 'Show me vintage mid-century luxury with Italian leather.',
+        timestamp: '2 days ago',
+      },
+      {
+        id: 'h-7',
+        role: 'agent',
+        text: 'Applied full-grain Italian leather, Nero Marquina marble, and bright morning daylight.',
+        timestamp: '2 days ago',
+        toolCall: { name: 'update_furniture', args: { category: 'sofa', material: 'leather' } },
+      },
+    ],
+  },
+]
+
+function getInitialUser() {
+  try {
+    const saved = localStorage.getItem('echoform_user')
+    if (saved) return JSON.parse(saved)
+  } catch (e) {}
+  // Default to Demo Guest so there's zero friction for visitors/judges
+  return {
+    id: 'demo-guest',
+    name: 'Demo Guest Designer',
+    email: 'guest@echoform.ai',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    isDemo: true,
+  }
+}
+
+function getInitialWorkspaces() {
+  try {
+    const saved = localStorage.getItem('echoform_workspaces')
+    if (saved) return JSON.parse(saved)
+  } catch (e) {}
+  return DEFAULT_WORKSPACES
+}
+
 export const useRoomStore = create((set, get) => ({
+  // Authentication State
+  currentUser: getInitialUser(),
+  isAuthModalOpen: false,
+  setIsAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+
+  loginAsDemo: () => {
+    const demoUser = {
+      id: 'demo-guest',
+      name: 'Demo Guest Designer',
+      email: 'guest@echoform.ai',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      isDemo: true,
+    }
+    localStorage.setItem('echoform_user', JSON.stringify(demoUser))
+    set({ currentUser: demoUser, isAuthModalOpen: false })
+  },
+
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('echoform_user', JSON.stringify(user))
+    } else {
+      localStorage.removeItem('echoform_user')
+    }
+    set({ currentUser: user, isAuthModalOpen: !user })
+  },
+
+  logout: () => {
+    localStorage.removeItem('echoform_user')
+    set({ currentUser: null, isAuthModalOpen: true })
+  },
+
+  // Workspace Management
+  workspaces: getInitialWorkspaces(),
+  activeWorkspaceId: 'ws-nordic',
+  isWorkspaceDrawerOpen: false,
+  setIsWorkspaceDrawerOpen: (open) => set({ isWorkspaceDrawerOpen: open }),
+
+  switchWorkspace: (workspaceId) => {
+    const ws = get().workspaces.find((w) => w.id === workspaceId)
+    if (!ws) return
+    set({
+      activeWorkspaceId: workspaceId,
+      lightingPreset: ws.lightingPreset || 'golden_hour',
+      cameraView: ws.cameraView || 'overview',
+      furniture: { ...ws.furniture },
+      voiceState: {
+        ...get().voiceState,
+        lastAgentReply: `Switched to ${ws.name}. Say any command or ask for style options.`,
+      },
+    })
+  },
+
+  createWorkspace: (name, style = 'Modern Minimalist') => {
+    const newWs = {
+      id: `ws-${Date.now().toString(36)}`,
+      name: name || 'New Interior Studio',
+      style,
+      lightingPreset: get().lightingPreset,
+      cameraView: get().cameraView,
+      furniture: JSON.parse(JSON.stringify(get().furniture)),
+      history: [
+        {
+          id: `h-${Date.now()}`,
+          role: 'agent',
+          text: `Workspace "${name}" ready. What aesthetic direction would you like to explore?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ],
+    }
+    const updated = [newWs, ...get().workspaces]
+    localStorage.setItem('echoform_workspaces', JSON.stringify(updated))
+    set({
+      workspaces: updated,
+      activeWorkspaceId: newWs.id,
+    })
+  },
+
+  addTranscriptToHistory: (role, text, toolCall = null) => {
+    const activeId = get().activeWorkspaceId
+    const item = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      role,
+      text,
+      toolCall,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+
+    set((state) => {
+      const updated = state.workspaces.map((ws) => {
+        if (ws.id === activeId) {
+          return {
+            ...ws,
+            history: [...(ws.history || []), item],
+            furniture: { ...state.furniture },
+            lightingPreset: state.lightingPreset,
+            cameraView: state.cameraView,
+          }
+        }
+        return ws
+      })
+      try {
+        localStorage.setItem('echoform_workspaces', JSON.stringify(updated))
+      } catch (e) {}
+      return { workspaces: updated }
+    })
+  },
+
   // Active Lighting Preset
   lightingPreset: 'golden_hour',
   setLightingPreset: (preset) => {
     if (LIGHTING_PRESETS[preset]) {
       set({ lightingPreset: preset })
+      // Sync to active workspace
+      const activeId = get().activeWorkspaceId
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === activeId ? { ...ws, lightingPreset: preset } : ws
+        ),
+      }))
     }
   },
 
@@ -90,6 +323,12 @@ export const useRoomStore = create((set, get) => ({
   setCameraView: (view) => {
     if (CAMERA_VIEWS[view]) {
       set({ cameraView: view })
+      const activeId = get().activeWorkspaceId
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === activeId ? { ...ws, cameraView: view } : ws
+        ),
+      }))
     }
   },
 
@@ -101,9 +340,9 @@ export const useRoomStore = create((set, get) => ({
       cushionColor: '#c2410c',
     },
     table: {
-      material: 'marble',
+      material: 'oak',
       customColor: null,
-      shape: 'oval', // 'oval' | 'rectangle'
+      shape: 'oval',
     },
     rug: {
       style: 'cream_geometric',
@@ -120,52 +359,57 @@ export const useRoomStore = create((set, get) => ({
   },
 
   updateSofa: (updates) =>
-    set((state) => ({
-      furniture: {
+    set((state) => {
+      const newFurniture = {
         ...state.furniture,
         sofa: { ...state.furniture.sofa, ...updates },
-      },
-    })),
+      }
+      return { furniture: newFurniture }
+    }),
 
   updateTable: (updates) =>
-    set((state) => ({
-      furniture: {
+    set((state) => {
+      const newFurniture = {
         ...state.furniture,
         table: { ...state.furniture.table, ...updates },
-      },
-    })),
+      }
+      return { furniture: newFurniture }
+    }),
 
   updateRug: (updates) =>
-    set((state) => ({
-      furniture: {
+    set((state) => {
+      const newFurniture = {
         ...state.furniture,
         rug: { ...state.furniture.rug, ...updates },
-      },
-    })),
+      }
+      return { furniture: newFurniture }
+    }),
 
   toggleLamp: () =>
-    set((state) => ({
-      furniture: {
+    set((state) => {
+      const newFurniture = {
         ...state.furniture,
         lamp: { ...state.furniture.lamp, isOn: !state.furniture.lamp.isOn },
-      },
-    })),
+      }
+      return { furniture: newFurniture }
+    }),
 
   togglePlant: () =>
-    set((state) => ({
-      furniture: {
+    set((state) => {
+      const newFurniture = {
         ...state.furniture,
         plant: { ...state.furniture.plant, isVisible: !state.furniture.plant.isVisible },
-      },
-    })),
+      }
+      return { furniture: newFurniture }
+    }),
 
-  // Voice Agent State (Pre-wired for Phase 3/4)
+  // Voice Agent State
   voiceState: {
     isConnected: false,
     isListening: false,
     isSpeaking: false,
     lastTranscript: '',
-    lastAgentReply: 'Welcome to EchoForm. Click any preset or get ready to speak your space into existence.',
+    lastAgentReply: "Welcome to EchoForm. Click 'Connect Voice' or say what style you'd love to see.",
     lastToolCall: null,
     audioLevel: 0,
   },

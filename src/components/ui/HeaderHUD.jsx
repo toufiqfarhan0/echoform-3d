@@ -1,14 +1,32 @@
 import React from 'react'
-import { Sparkles, Mic, Layers, Settings, Camera } from 'lucide-react'
+import {
+  Sparkles,
+  Mic,
+  Camera,
+  Layers,
+  History,
+  User,
+  ChevronDown,
+} from 'lucide-react'
 import { useRoomStore } from '../../store/useRoomStore'
 import { captureAndDownloadSnapshot } from '../../utils/snapshotExporter'
 
-export default function HeaderHUD({ onOpenSettings }) {
+export default function HeaderHUD() {
   const voiceState = useRoomStore((state) => state.voiceState)
+  const workspaces = useRoomStore((state) => state.workspaces)
+  const activeWorkspaceId = useRoomStore((state) => state.activeWorkspaceId)
+  const setIsWorkspaceDrawerOpen = useRoomStore(
+    (state) => state.setIsWorkspaceDrawerOpen
+  )
+  const currentUser = useRoomStore((state) => state.currentUser)
+  const setIsAuthModalOpen = useRoomStore((state) => state.setIsAuthModalOpen)
+
+  const activeWorkspace =
+    workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0]
 
   return (
     <header className="header-hud">
-      {/* Brand Identity */}
+      {/* Brand & Active Workspace Selector */}
       <div className="brand-group">
         <div className="brand-icon">
           <Sparkles size={18} className="text-amber-400" />
@@ -20,6 +38,17 @@ export default function HeaderHUD({ onOpenSettings }) {
           </div>
           <p className="brand-tagline">Voice-Orchestrated 3D Spatial Staging</p>
         </div>
+
+        {/* Workspace Quick Switch Button */}
+        <button
+          className="workspace-selector-pill"
+          onClick={() => setIsWorkspaceDrawerOpen(true)}
+          title="Switch or manage 3D workspaces"
+        >
+          <Layers size={13} className="text-amber-400" />
+          <span className="workspace-pill-name">{activeWorkspace?.name}</span>
+          <ChevronDown size={13} className="opacity-60" />
+        </button>
       </div>
 
       {/* Center Status Pill */}
@@ -27,12 +56,30 @@ export default function HeaderHUD({ onOpenSettings }) {
         <span className={`status-dot ${voiceState.isConnected ? 'live' : ''}`}></span>
         <Mic size={14} className="opacity-80" />
         <span className="status-text">
-          {voiceState.isConnected ? 'Live Agent (AssemblyAI + Groq)' : 'Voice Agent Ready'}
+          {voiceState.isConnected
+            ? 'Live Agent (AssemblyAI Voice Agent API)'
+            : 'Voice Agent Ready'}
         </span>
       </div>
 
-      {/* Right Meta Info & Settings */}
+      {/* Right Actions: History Drawer, Snapshot, User Profile */}
       <div className="header-actions">
+        {/* Workspace & History Drawer Trigger */}
+        <button
+          className="history-trigger-btn"
+          onClick={() => setIsWorkspaceDrawerOpen(true)}
+          title="View workspaces & conversation history"
+        >
+          <History size={14} />
+          <span>History</span>
+          {activeWorkspace?.history?.length > 0 && (
+            <span className="history-count-badge">
+              {activeWorkspace.history.length}
+            </span>
+          )}
+        </button>
+
+        {/* 3D WebGL Snapshot Exporter */}
         <button
           className="snapshot-btn"
           onClick={() => captureAndDownloadSnapshot()}
@@ -42,18 +89,22 @@ export default function HeaderHUD({ onOpenSettings }) {
           <span>Snapshot</span>
         </button>
 
-        <div className="tech-badge">
-          <Layers size={13} />
-          <span>Three.js + R3F</span>
-        </div>
-
+        {/* User Profile / Auth Trigger */}
         <button
-          className="settings-trigger-btn"
-          onClick={onOpenSettings}
-          title="Configure AssemblyAI & Groq API Keys"
+          className="user-profile-chip"
+          onClick={() => setIsAuthModalOpen(true)}
+          title="User Account & Workspaces"
         >
-          <Settings size={15} />
-          <span>API Keys</span>
+          <div className="user-avatar-circle">
+            {currentUser?.avatar ? (
+              <img src={currentUser.avatar} alt="User" className="user-avatar-img" />
+            ) : (
+              <User size={13} />
+            )}
+          </div>
+          <span className="user-profile-name">
+            {currentUser?.isDemo ? 'Demo Guest' : currentUser?.name || 'Account'}
+          </span>
         </button>
       </div>
     </header>
