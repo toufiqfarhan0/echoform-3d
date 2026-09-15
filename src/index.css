@@ -965,3 +965,84 @@ body,
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
 }
 
+/* ==========================================================================
+   Tool Call Toast Notification (Phase 4)
+   ========================================================================== */
+.tool-call-toast {
+  position: absolute;
+  top: 90px;
+  left: 24px;
+  z-index: 50;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.2);
+  border-radius: 14px;
+  padding: 10px 16px;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 380px;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-icon-pulse {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.toast-tag {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: #fbbf24;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.toast-tool-name {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.toast-message {
+  font-size: 0.78rem;
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+

@@ -4,6 +4,7 @@ import HeaderHUD from './components/ui/HeaderHUD'
 import StagingControls from './components/ui/StagingControls'
 import VoiceHUD from './components/ui/VoiceHUD'
 import SettingsModal from './components/ui/SettingsModal'
+import ToolCallToast from './components/ui/ToolCallToast'
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -18,6 +19,7 @@ export default function App() {
         <HeaderHUD onOpenSettings={() => setIsSettingsOpen(true)} />
         <StagingControls />
         <VoiceHUD onOpenSettings={() => setIsSettingsOpen(true)} />
+        <ToolCallToast />
       </div>
 
       {/* API Key Configuration Modal */}
