@@ -122,10 +122,9 @@ export class VoiceAgentClient {
   }
 
   sendSessionUpdate() {
-    const payload = {
-      type: 'session.update',
-      session: {
-        system_prompt: `You are EchoForm, an elite architectural interior staging agent. You help users style and customize their 3D modern living room in real time.
+    const sessionConfig = {
+      greeting: 'Hello! I am EchoForm, your spatial staging agent. How can I help style the room today?',
+      system_prompt: `You are EchoForm, an elite architectural interior staging agent. You help users style and customize their 3D modern living room in real time.
 
 When the user asks to change furniture, lighting, or camera angles, call the appropriate tool immediately and give a concise, sophisticated confirmation (1-2 sentences max).
 
@@ -135,13 +134,8 @@ Available options:
 - Lighting presets: golden_hour, daylight, moody_night, cyberpunk_neon.
 - Camera views: overview, sofa_focus, overhead_plan, window_view.
 - Fixtures: floor_lamp (on/off), plant (on/off).`,
-        voice: 'ivy',
-        llm: {
-          base_url: 'https://api.groq.com/openai/v1',
-          model: 'llama-3.3-70b-versatile',
-          api_key: this.groqKey,
-        },
-        tools: [
+      voice: 'ivy',
+      tools: [
           {
             type: 'function',
             name: 'update_furniture',
@@ -219,10 +213,23 @@ Available options:
             },
           },
         ],
-      },
+      }
+
+    // Attach BYO-LLM if a valid Groq key is provided
+    if (this.groqKey && this.groqKey.trim()) {
+      sessionConfig.llm = {
+        base_url: 'https://api.groq.com/openai/v1',
+        model: 'llama-3.3-70b-versatile',
+        api_key: this.groqKey.trim(),
+      }
     }
 
-    console.log('[VoiceAgentClient] Sending session.update...')
+    const payload = {
+      type: 'session.update',
+      session: sessionConfig,
+    }
+
+    console.log('[VoiceAgentClient] Sending session.update:', payload)
     this.ws.send(JSON.stringify(payload))
   }
 
@@ -230,6 +237,17 @@ Available options:
     console.log('[VoiceAgentClient] Event:', msg.type, msg)
 
     switch (msg.type) {
+      case 'session.error': {
+        console.error('[VoiceAgentClient] Session error received:', msg)
+        const errorDetail =
+          msg.error || msg.message || msg.detail || (typeof msg === 'object' ? JSON.stringify(msg) : String(msg))
+        useRoomStore.getState().setVoiceState({
+          isConnected: false,
+          lastAgentReply: `Agent Error: ${errorDetail}`,
+        })
+        break
+      }
+
       case 'session.ready': {
         this.isConnected = true
         useRoomStore.getState().setVoiceState({

@@ -181,16 +181,45 @@ export default function VoiceHUD({ onOpenSettings }) {
               })
 
               // 2. Pulse 3D EchoCore
-              useRoomStore.getState().setAudioLevel(0.8)
+              useRoomStore.getState().setAudioLevel(0.85)
 
               // 3. Execute 3D Tool
               ToolDispatcher.execute(item.tool, item.args)
 
-              // 4. Return to idle after speech duration
-              setTimeout(() => {
-                useRoomStore.getState().setVoiceState({ isSpeaking: false })
-                useRoomStore.getState().setAudioLevel(0)
-              }, 2200)
+              // 4. Audibly speak the agent reply through browser speakers
+              if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel()
+                const utterance = new SpeechSynthesisUtterance(item.reply)
+                utterance.rate = 1.05
+                utterance.pitch = 1.0
+                const voices = window.speechSynthesis.getVoices()
+                const naturalVoice = voices.find(
+                  (v) =>
+                    v.lang.startsWith('en') &&
+                    (v.name.includes('Natural') ||
+                      v.name.includes('Google') ||
+                      v.name.includes('Samantha') ||
+                      v.name.includes('Ava') ||
+                      v.name.includes('Victoria') ||
+                      v.name.includes('Zira'))
+                )
+                if (naturalVoice) utterance.voice = naturalVoice
+
+                utterance.onend = () => {
+                  useRoomStore.getState().setVoiceState({ isSpeaking: false })
+                  useRoomStore.getState().setAudioLevel(0)
+                }
+                utterance.onerror = () => {
+                  useRoomStore.getState().setVoiceState({ isSpeaking: false })
+                  useRoomStore.getState().setAudioLevel(0)
+                }
+                window.speechSynthesis.speak(utterance)
+              } else {
+                setTimeout(() => {
+                  useRoomStore.getState().setVoiceState({ isSpeaking: false })
+                  useRoomStore.getState().setAudioLevel(0)
+                }, 2500)
+              }
             }}
           >
             <Sparkles size={11} className="text-amber-400" />
