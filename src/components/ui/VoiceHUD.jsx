@@ -121,6 +121,9 @@ export default function VoiceHUD({ onOpenSettings }) {
             <span className="sound-bar bar-3"></span>
             <span className="sound-bar bar-4"></span>
             <span className="sound-bar bar-5"></span>
+            <span className="sound-bar bar-6"></span>
+            <span className="sound-bar bar-7"></span>
+            <span className="sound-bar bar-8"></span>
           </div>
         </div>
       </div>

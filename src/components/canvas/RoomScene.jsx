@@ -14,6 +14,7 @@ import Rug from './furniture/Rug'
 import WallArt from './furniture/WallArt'
 import EchoCore from './EchoCore'
 import SunBeams from './SunBeams'
+import AcousticRipples from './AcousticRipples'
 
 function SceneContent() {
   const controlsRef = useRef()
@@ -56,6 +57,9 @@ function SceneContent() {
 
       {/* Floating Atmospheric Sunbeams through the Window */}
       <SunBeams />
+
+      {/* 3D Floor Acoustic Soundwave Ripples */}
+      <AcousticRipples />
 
       {/* Ultra-Soft Contact Shadows on the Wood Floor */}
       <ContactShadows

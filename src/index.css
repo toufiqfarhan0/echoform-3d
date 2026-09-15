@@ -537,27 +537,40 @@ body,
   display: flex;
   align-items: center;
   gap: 3px;
-  height: 20px;
+  height: 22px;
   padding: 0 4px;
 }
 
 .sound-bar {
   width: 3px;
   height: 8px;
-  background: var(--accent-amber);
+  background: linear-gradient(180deg, var(--accent-amber), #06b6d4);
   border-radius: 3px;
-  animation: soundwave-pulse 1.4s infinite ease-in-out;
+  transition: all 0.2s ease;
 }
 
-.sound-bar.bar-1 { animation-delay: 0.1s; height: 12px; }
-.sound-bar.bar-2 { animation-delay: 0.3s; height: 18px; }
-.sound-bar.bar-3 { animation-delay: 0.2s; height: 14px; }
-.sound-bar.bar-4 { animation-delay: 0.4s; height: 16px; }
-.sound-bar.bar-5 { animation-delay: 0.15s; height: 10px; }
+.soundwave-indicator.active .sound-bar {
+  animation: soundwave-pulse 1.2s infinite ease-in-out;
+}
+
+.soundwave-indicator.idle .sound-bar {
+  height: 4px;
+  opacity: 0.35;
+  animation: none;
+}
+
+.sound-bar.bar-1 { animation-delay: 0.05s; height: 10px; }
+.sound-bar.bar-2 { animation-delay: 0.2s; height: 16px; }
+.sound-bar.bar-3 { animation-delay: 0.1s; height: 20px; }
+.sound-bar.bar-4 { animation-delay: 0.35s; height: 14px; }
+.sound-bar.bar-5 { animation-delay: 0.15s; height: 18px; }
+.sound-bar.bar-6 { animation-delay: 0.4s; height: 22px; }
+.sound-bar.bar-7 { animation-delay: 0.25s; height: 15px; }
+.sound-bar.bar-8 { animation-delay: 0.1s; height: 9px; }
 
 @keyframes soundwave-pulse {
-  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
-  50% { transform: scaleY(1); opacity: 1; }
+  0%, 100% { transform: scaleY(0.3); opacity: 0.4; }
+  50% { transform: scaleY(1.1); opacity: 1; filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6)); }
 }
 
 /* Prompt Chips */
