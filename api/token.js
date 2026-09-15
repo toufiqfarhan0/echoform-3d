@@ -15,16 +15,20 @@ export default async function handler(req, res) {
       })
     }
 
-    const response = await fetch('https://agents.assemblyai.com/v1/token', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        expires_in_seconds: 600,
-      }),
-    })
+    const cleanKey = apiKey.trim()
+    const authHeader = cleanKey.startsWith('Bearer ')
+      ? cleanKey
+      : `Bearer ${cleanKey}`
+
+    const response = await fetch(
+      'https://agents.assemblyai.com/v1/token?expires_in_seconds=600',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: authHeader,
+        },
+      }
+    )
 
     if (!response.ok) {
       const errText = await response.text()
