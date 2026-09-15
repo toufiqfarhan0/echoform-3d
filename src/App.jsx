@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { useState } from 'react'
 import RoomScene from './components/canvas/RoomScene'
 import HeaderHUD from './components/ui/HeaderHUD'
 import StagingControls from './components/ui/StagingControls'
 import VoiceHUD from './components/ui/VoiceHUD'
+import SettingsModal from './components/ui/SettingsModal'
 
 export default function App() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
   return (
     <main className="app-viewport">
       {/* 3D WebGL Canvas Layer */}
@@ -12,10 +15,16 @@ export default function App() {
 
       {/* Futuristic Spatial Overlay UI Layer */}
       <div className="ui-overlay">
-        <HeaderHUD />
+        <HeaderHUD onOpenSettings={() => setIsSettingsOpen(true)} />
         <StagingControls />
-        <VoiceHUD />
+        <VoiceHUD onOpenSettings={() => setIsSettingsOpen(true)} />
       </div>
+
+      {/* API Key Configuration Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </main>
   )
 }
