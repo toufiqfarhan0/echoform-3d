@@ -19,55 +19,56 @@ export class AudioPlayer {
       this.nextStartTime = 0
     }
     if (this.audioContext.state === 'suspended') {
-      this.audioContext.resume()
+      this.audioContext.resume().catch(() => {})
     }
+    return this.audioContext
   }
 
   playChunk(base64Chunk) {
+    if (!base64Chunk) return
+
     try {
       this.ensureContext()
 
-      // Convert Base64 back to 16-bit PCM
-      const binaryString = window.atob(base64Chunk)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
+      // Convert Base64 PCM to 16-bit integer samples
+      const binary = window.atob(base64Chunk)
+      const numSamples = Math.floor(binary.length / 2)
+      if (numSamples === 0) return
+
+      const samples = new Int16Array(numSamples)
+      for (let i = 0; i < numSamples; i++) {
+        let val = binary.charCodeAt(i * 2) | (binary.charCodeAt(i * 2 + 1) << 8)
+        if (val >= 0x8000) val -= 0x10000
+        samples[i] = val
       }
 
-      const int16Array = new Int16Array(bytes.buffer)
-      if (int16Array.length === 0) return
-
-      // Convert Int16 to Float32 [-1.0, 1.0]
-      const float32Array = new Float32Array(int16Array.length)
+      // Convert to Web Audio Float32 [-1.0, 1.0]
+      const audioBuffer = this.audioContext.createBuffer(1, samples.length, this.sampleRate)
+      const channelData = audioBuffer.getChannelData(0)
       let sumSquares = 0
-      for (let i = 0; i < int16Array.length; i++) {
-        const val = int16Array[i] / 32768
-        float32Array[i] = val
-        sumSquares += val * val
+
+      for (let i = 0; i < samples.length; i++) {
+        const floatVal = samples[i] / 32768
+        channelData[i] = floatVal
+        sumSquares += floatVal * floatVal
       }
 
-      // Notify volume for soundwave visualizer
+      // RMS calculation for audio visualizer
       if (this.onVolumeChange) {
-        const rms = Math.sqrt(sumSquares / int16Array.length)
-        this.onVolumeChange(Math.min(Math.max(rms * 4, 0), 1))
+        const rms = Math.sqrt(sumSquares / samples.length)
+        const norm = Math.min(Math.max(rms * 5, 0), 1)
+        this.onVolumeChange(norm)
       }
 
-      // Create Web Audio Buffer
-      const audioBuffer = this.audioContext.createBuffer(1, float32Array.length, this.sampleRate)
-      audioBuffer.copyToChannel(float32Array, 0)
-
-      // Schedule seamless continuous playback
+      // Schedule continuous seamless playback
       const source = this.audioContext.createBufferSource()
       source.buffer = audioBuffer
       source.connect(this.audioContext.destination)
 
       const currentTime = this.audioContext.currentTime
-      if (this.nextStartTime < currentTime) {
-        this.nextStartTime = currentTime
-      }
-
-      source.start(this.nextStartTime)
-      this.nextStartTime += audioBuffer.duration
+      const startTime = Math.max(currentTime, this.nextStartTime)
+      source.start(startTime)
+      this.nextStartTime = startTime + audioBuffer.duration
       this.activeNodes.push(source)
       this.isPlaying = true
 
@@ -109,7 +110,9 @@ export class AudioPlayer {
   stop() {
     this.clearQueue()
     if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close()
+      try {
+        this.audioContext.close()
+      } catch (e) {}
       this.audioContext = null
     }
   }

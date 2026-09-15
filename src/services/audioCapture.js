@@ -17,21 +17,24 @@ export class AudioCapture {
   async start() {
     if (this.isRecording) return
 
+    // Note: AssemblyAI docs recommend echoCancellation: true and noiseSuppression: false
+    // because AssemblyAI runs its own server-side voice focus neural noise cancellation.
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
         echoCancellation: true,
-        noiseSuppression: true,
+        noiseSuppression: false,
         autoGainControl: true,
       },
     })
 
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     this.audioContext = new AudioCtx({ sampleRate: this.targetSampleRate })
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume()
+    }
 
-    // Fallback if browser forces a different hardware sample rate
     const actualSampleRate = this.audioContext.sampleRate
-
     this.source = this.audioContext.createMediaStreamSource(this.mediaStream)
 
     // ScriptProcessor for continuous raw PCM extraction
@@ -60,7 +63,7 @@ export class AudioCapture {
         resampled = this.resample(inputData, actualSampleRate, this.targetSampleRate)
       }
 
-      // Convert Float32 to Int16 PCM
+      // Convert Float32 to Int16 Little-Endian PCM
       const pcm16 = new Int16Array(resampled.length)
       for (let i = 0; i < resampled.length; i++) {
         const s = Math.max(-1, Math.min(1, resampled[i]))
@@ -98,7 +101,9 @@ export class AudioCapture {
     }
 
     if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close()
+      try {
+        this.audioContext.close()
+      } catch (e) {}
       this.audioContext = null
     }
 

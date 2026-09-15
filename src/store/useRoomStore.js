@@ -94,21 +94,20 @@ const DEFAULT_WORKSPACES = [
       {
         id: 'h-1',
         role: 'agent',
-        text: "Welcome to EchoForm 3D! I'm your spatial interior designer. What style inspires you today — sleek modern minimalist or warm vintage mid-century?",
+        text: "Hi! I'm EchoForm, your spatial interior designer. How can I help style your space today?",
         timestamp: '10:00 AM',
       },
       {
         id: 'h-2',
         role: 'user',
-        text: 'I want a calm Nordic sanctuary with warm textures and afternoon sunlight.',
-        timestamp: '10:01 AM',
+        text: 'What are the available options?',
+        timestamp: '10:00 AM',
       },
       {
         id: 'h-3',
         role: 'agent',
-        text: 'Staging a warm bouclé sofa paired with a white oak oval coffee table bathed in golden hour sunbeams.',
+        text: 'I can create a complete new interior design! We can start with the style and floor materials. Do you prefer a modern minimalist interior with light oak and warm bouclé, or an old vintage aesthetic with Italian saddle leather and dark walnut? What colors do you like?',
         timestamp: '10:01 AM',
-        toolCall: { name: 'update_furniture', args: { category: 'sofa', material: 'boucle' } },
       },
     ],
   },
@@ -422,7 +421,15 @@ export const useRoomStore = create((set, get) => ({
   audioLevel: 0,
   setAudioLevel: (level) => set({ audioLevel: level }),
 
+  // Live Delta Transcript (Streaming captions)
+  liveDeltaTranscript: null,
+  setLiveDeltaTranscript: (text, role) =>
+    set({
+      liveDeltaTranscript: text ? { text, role } : null,
+    }),
+
   // Floating Toast Alert for Voice Tools
   activeToolAlert: null,
   setActiveToolAlert: (alert) => set({ activeToolAlert: alert }),
 }))
+
