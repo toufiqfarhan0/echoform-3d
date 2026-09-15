@@ -1,6 +1,7 @@
 import React from 'react'
-import { Sparkles, Mic, Layers, Settings } from 'lucide-react'
+import { Sparkles, Mic, Layers, Settings, Camera } from 'lucide-react'
 import { useRoomStore } from '../../store/useRoomStore'
+import { captureAndDownloadSnapshot } from '../../utils/snapshotExporter'
 
 export default function HeaderHUD({ onOpenSettings }) {
   const voiceState = useRoomStore((state) => state.voiceState)
@@ -15,7 +16,7 @@ export default function HeaderHUD({ onOpenSettings }) {
         <div>
           <div className="brand-title">
             Echo<span className="brand-highlight">Form</span>
-            <span className="version-badge">v2.0 (Phase 2)</span>
+            <span className="version-badge">v3.0</span>
           </div>
           <p className="brand-tagline">Voice-Orchestrated 3D Spatial Staging</p>
         </div>
@@ -32,6 +33,15 @@ export default function HeaderHUD({ onOpenSettings }) {
 
       {/* Right Meta Info & Settings */}
       <div className="header-actions">
+        <button
+          className="snapshot-btn"
+          onClick={() => captureAndDownloadSnapshot()}
+          title="Capture High-Resolution 3D Snapshot"
+        >
+          <Camera size={14} />
+          <span>Snapshot</span>
+        </button>
+
         <div className="tech-badge">
           <Layers size={13} />
           <span>Three.js + R3F</span>

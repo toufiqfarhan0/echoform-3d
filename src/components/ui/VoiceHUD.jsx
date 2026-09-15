@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Mic, MicOff, Power, Sparkles, Volume2, Loader2, Zap } from 'lucide-react'
 import { useRoomStore } from '../../store/useRoomStore'
 import { voiceAgent } from '../../services/voiceAgentClient'
+import { ToolDispatcher } from '../../services/toolDispatcher'
 
 export default function VoiceHUD({ onOpenSettings }) {
   const voiceState = useRoomStore((state) => state.voiceState)
@@ -124,13 +125,75 @@ export default function VoiceHUD({ onOpenSettings }) {
         </div>
       </div>
 
-      {/* Suggested Voice Prompts */}
+      {/* Suggested Voice Prompts / Quick Interactive Simulators */}
       <div className="sample-prompts-row">
-        <span className="prompts-label">Try Voice Instructions:</span>
-        <span className="prompt-chip">"Echo, change the sofa to Italian leather"</span>
-        <span className="prompt-chip">"Set the room to golden hour sunset"</span>
-        <span className="prompt-chip">"Switch coffee table to black marble"</span>
-        <span className="prompt-chip">"Zoom in to the sofa"</span>
+        <span className="prompts-label">Quick Prompt Triggers:</span>
+        {[
+          {
+            text: 'Golden Hour Sunset',
+            speech: 'Echo, set the room to golden hour sunset',
+            tool: 'adjust_lighting',
+            args: { preset: 'golden_hour' },
+            reply: 'Setting the atmospheric lighting to warm golden hour sunset.',
+          },
+          {
+            text: 'Italian Leather Sofa',
+            speech: 'Change the sofa to Italian leather',
+            tool: 'update_furniture',
+            args: { category: 'sofa', material: 'leather' },
+            reply: 'Upholstering the 3-seater sofa with rich Italian saddle leather.',
+          },
+          {
+            text: 'Nero Marble Table',
+            speech: 'Switch coffee table to black marble',
+            tool: 'update_furniture',
+            args: { category: 'coffee_table', material: 'black_marble' },
+            reply: 'Replaced the coffee table top with polished Nero Marquina marble.',
+          },
+          {
+            text: 'Sofa Close-Up',
+            speech: 'Zoom in to the sofa',
+            tool: 'set_camera_view',
+            args: { view: 'sofa_focus' },
+            reply: 'Focusing cinematic camera perspective on the sofa arrangement.',
+          },
+          {
+            text: 'Cyberpunk Neon',
+            speech: 'Switch to Cyberpunk Neon lighting',
+            tool: 'adjust_lighting',
+            args: { preset: 'cyberpunk_neon' },
+            reply: 'Illuminating the room with electric cyberpunk violet and cyan accents.',
+          },
+        ].map((item, idx) => (
+          <button
+            key={idx}
+            className="prompt-chip clickable"
+            onClick={() => {
+              // 1. Update UI Speech Transcript
+              useRoomStore.getState().setVoiceState({
+                lastTranscript: item.speech,
+                lastAgentReply: item.reply,
+                isSpeaking: true,
+                lastToolCall: { name: item.tool, args: item.args, timestamp: Date.now() },
+              })
+
+              // 2. Pulse 3D EchoCore
+              useRoomStore.getState().setAudioLevel(0.8)
+
+              // 3. Execute 3D Tool
+              ToolDispatcher.execute(item.tool, item.args)
+
+              // 4. Return to idle after speech duration
+              setTimeout(() => {
+                useRoomStore.getState().setVoiceState({ isSpeaking: false })
+                useRoomStore.getState().setAudioLevel(0)
+              }, 2200)
+            }}
+          >
+            <Sparkles size={11} className="text-amber-400" />
+            <span>{item.text}</span>
+          </button>
+        ))}
       </div>
     </div>
   )

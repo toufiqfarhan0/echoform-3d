@@ -167,9 +167,18 @@ export const useRoomStore = create((set, get) => ({
     lastTranscript: '',
     lastAgentReply: 'Welcome to EchoForm. Click any preset or get ready to speak your space into existence.',
     lastToolCall: null,
+    audioLevel: 0,
   },
   setVoiceState: (updates) =>
     set((state) => ({
       voiceState: { ...state.voiceState, ...updates },
     })),
+
+  // Live Audio Level (0.0 - 1.0) for 3D Holographic Visualizer
+  audioLevel: 0,
+  setAudioLevel: (level) => set({ audioLevel: level }),
+
+  // Floating Toast Alert for Voice Tools
+  activeToolAlert: null,
+  setActiveToolAlert: (alert) => set({ activeToolAlert: alert }),
 }))

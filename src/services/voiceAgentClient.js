@@ -51,7 +51,8 @@ export class VoiceAgentClient {
 
     // 3. Setup Audio Player for Agent Speech
     this.audioPlayer = new AudioPlayer((agentVolume) => {
-      // Future: connect to 3D aura visualizer
+      useRoomStore.getState().setAudioLevel(agentVolume)
+      useRoomStore.getState().setVoiceState({ isSpeaking: agentVolume > 0.05 })
     })
 
     // 4. Setup Audio Capture for User Microphone
@@ -67,7 +68,8 @@ export class VoiceAgentClient {
         }
       },
       (micVolume) => {
-        // Microphone volume for real-time soundwave HUD
+        // Microphone volume for real-time 3D visualizer and soundwave HUD
+        useRoomStore.getState().setAudioLevel(micVolume)
         useRoomStore.getState().setVoiceState({ isListening: micVolume > 0.05 })
       }
     )

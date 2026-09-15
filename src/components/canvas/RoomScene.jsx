@@ -12,6 +12,8 @@ import FloorLamp from './furniture/FloorLamp'
 import Plant from './furniture/Plant'
 import Rug from './furniture/Rug'
 import WallArt from './furniture/WallArt'
+import EchoCore from './EchoCore'
+import SunBeams from './SunBeams'
 
 function SceneContent() {
   const controlsRef = useRef()
@@ -49,6 +51,12 @@ function SceneContent() {
         <WallArt />
       </group>
 
+      {/* Floating 3D Audio-Reactive AI Core */}
+      <EchoCore />
+
+      {/* Floating Atmospheric Sunbeams through the Window */}
+      <SunBeams />
+
       {/* Ultra-Soft Contact Shadows on the Wood Floor */}
       <ContactShadows
         position={[0, 0.008, 0]}
@@ -71,6 +79,7 @@ export default function RoomScene() {
         camera={{ position: [4.5, 3.8, 6.2], fov: 45 }}
         gl={{
           antialias: true,
+          preserveDrawingBuffer: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.05,
           powerPreference: 'high-performance',
