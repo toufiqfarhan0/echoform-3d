@@ -1,134 +1,122 @@
+<div align="center">
+
 # 🏛️ EchoForm 3D
 ### Voice-Orchestrated 3D Spatial Staging Studio
 
-> **"Speak your space into existence."**  
-> *Built for the AssemblyAI Voice Agent Hackathon on lablab.ai (Sep 2026).*
+**"Speak your space into existence."**  
+*Built for the AssemblyAI Voice Agent Hackathon on lablab.ai (Sep 2026).*
 
-[![AssemblyAI Voice Agent API](https://img.shields.io/badge/AssemblyAI-Voice%20Agent%20API-10b981.svg)](https://www.assemblyai.com/products/voice-agent-api)
-[![Groq Cloud](https://img.shields.io/badge/Groq-Llama%203.3%2070B%20(BYO--LLM)-f59e0b.svg)](https://groq.com)
-[![Three.js](https://img.shields.io/badge/Three.js-WebGL%20Canvas-06b6d4.svg)](https://threejs.org)
-[![React Three Fiber](https://img.shields.io/badge/R3F-React%20Three%20Fiber-8b5cf6.svg)](https://docs.pmnd.rs/react-three-fiber)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![AssemblyAI Voice Agent API](https://img.shields.io/badge/AssemblyAI-Voice%20Agent%20API-10b981.svg?style=for-the-badge&logo=assemblyai)](https://www.assemblyai.com/products/voice-agent-api)
+[![Groq Cloud](https://img.shields.io/badge/Groq-Llama%203.3%2070B%20(BYO--LLM)-f59e0b.svg?style=for-the-badge)](https://groq.com)
+[![Three.js](https://img.shields.io/badge/Three.js-WebGL%20Canvas-06b6d4.svg?style=for-the-badge&logo=three.js)](https://threejs.org)
+[![React Three Fiber](https://img.shields.io/badge/R3F-React%20Three%20Fiber-8b5cf6.svg?style=for-the-badge)](https://docs.pmnd.rs/react-three-fiber)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
----
-
-## 💡 Overview
-
-**EchoForm 3D** is an autonomous, conversational interior staging studio that lets architects, real estate developers, and homeowners style and configure living spaces in real time purely using natural voice.
-
-Instead of navigating complex CAD menus or slow dropdowns, users simply speak:
-- *"Echo, set the room to golden hour sunset and dim the floor lamp."*
-- *"Change the 3-seater sofa to Italian saddle leather and replace the table with Nero Marquina black marble."*
-- *"Zoom into the seating area and switch the rug to terracotta earth."*
-
-Within milliseconds, the **AssemblyAI Voice Agent API** transcribes the speech, passes context to an ultra-low latency **Groq BYO-LLM (Llama-3.3-70B)** brain, dispatches real-time 3D tool calls, and replies aloud in a natural, fluid voice while the **Three.js** canvas physically mutates textures, meshes, and lighting.
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 📖 Executive Summary
+
+**EchoForm 3D** is a voice-orchestrated spatial interior staging application that transforms natural speech into real-time 3D architectural mutations.
+
+Navigating complex CAD menus, sliders, and nested material panels slows down interior designers, real estate stagers, and homeowners. **EchoForm** replaces clunky UI controls with fluid, sub-second voice conversations:
+
+> 🗣️ *"Echo, set the room to golden hour sunset, change the sofa to Italian saddle leather, and focus the camera on the seating area."*
+
+Within **<600 milliseconds**, the voice agent understands spatial intent, triggers parallel JSON tool calls, mutates 3D models and lighting, and speaks back in a natural human voice—while soundwaves pulse across the room in living 3D.
+
+---
+
+## 🏗️ Technical Architecture & Pipeline
+
+EchoForm uses AssemblyAI’s **Voice Agent API** configured with a **"Bring Your Own LLM" (BYO-LLM)** endpoint pointing to **Groq Cloud (Llama-3.3-70B)**. This bypasses the 2 req/min rate limit of free gateways while maintaining end-to-end streaming performance:
 
 ```
-                                  [User's Microphone]
-                                           │
-                                           ▼ (24kHz 16-bit PCM Stream)
- ┌──────────────────────────────────────────────────────────────────────────────────┐
- │                        AssemblyAI Voice Agent API                                │
- │                     (wss://agents.assemblyai.com/v1/ws)                          │
- │                                                                                  │
- │  • Speech-to-Text powered by Universal-3 Pro                                     │
- │  • Neural Turn-Taking & Voice Activity Detection (VAD)                           │
- │  • Barge-In / Natural Interruption Handling                                      │
- │  • Native Voice Audio Output (24kHz TTS Streaming)                               │
- └────────────────────────────────────────┬─────────────────────────────────────────┘
-                                          │
-                         AssemblyAI calls │ (OpenAI-compatible chat completions)
-                         BYO-LLM Endpoint │ base_url: https://api.groq.com/openai/v1
-                                          ▼
- ┌──────────────────────────────────────────────────────────────────────────────────┐
- │                        Groq Cloud API (100% Free Tier)                           │
- │                         Model: llama-3.3-70b-versatile                           │
- │                                                                                  │
- │  • 30 Requests / Minute (Bypasses the 2 req/min Gateway limit!)                  │
- │  • ~150ms Time-To-First-Token (>300 tokens/sec)                                  │
- │  • Native JSON Schema Tool Calling (`update_furniture`, `adjust_lighting`, etc.) │
- └────────────────────────────────────────┬─────────────────────────────────────────┘
-                                          │
-                      Tool Call Events &  │
-                      Streaming Audio     │
-                                          ▼
- ┌──────────────────────────────────────────────────────────────────────────────────┐
- │                    EchoForm 3D Client (React + Three.js)                         │
- │                                                                                  │
- │  1. Tool Dispatcher updates Zustand Room Store in real time                      │
- │  2. Three.js / R3F swaps PBR materials, furniture geometries, & lighting         │
- │  3. 3D Audio-Reactive EchoCore holographic orb pulses to voice volume            │
- │  4. Web Audio API plays continuous voice playback with instant barge-in flush    │
- └──────────────────────────────────────────────────────────────────────────────────┘
+                                      [User's Microphone]
+                                               │
+                                               ▼ (24,000 Hz 16-bit Mono PCM Stream)
+ ┌───────────────────────────────────────────────────────────────────────────────────────────┐
+ │                               AssemblyAI Voice Agent API                                  │
+ │                            (wss://agents.assemblyai.com/v1/ws)                            │
+ │                                                                                           │
+ │  • Real-time Speech-to-Text powered by Universal-3 Pro                                    │
+ │  • Neural Turn-Taking & Voice Activity Detection (VAD)                                    │
+ │  • Barge-In / Natural Interruption Handling (clears buffer when user speaks)              │
+ │  • Chunked Streaming TTS Voice Synthesis (24kHz natural voices)                           │
+ └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                               │
+                              AssemblyAI calls │ (OpenAI-compatible chat completions)
+                              BYO-LLM Endpoint │ base_url: https://api.groq.com/openai/v1
+                                               ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────────┐
+ │                              Groq Cloud API (100% Free Tier)                              │
+ │                               Model: llama-3.3-70b-versatile                              │
+ │                                                                                           │
+ │  • 30 Requests / Minute (Bypasses free Gateway limits)                                    │
+ │  • ~150ms Time-To-First-Token (>300 tokens/second)                                        │
+ │  • Native JSON Schema Tool Calling (`update_furniture`, `adjust_lighting`, etc.)          │
+ └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                               │
+                           Tool Call Events &  │
+                           Streaming Audio     │
+                                               ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────────┐
+ │                         EchoForm 3D Web Client (React + Three.js)                         │
+ │                                                                                           │
+ │  1. Tool Dispatcher updates central Zustand 3D store in real time                         │
+ │  2. Three.js / R3F executes real-time PBR material swaps & lighting transitions           │
+ │  3. Floating 3D EchoCore orb & Floor Acoustic Ripples react to speech volume              │
+ │  4. Web Audio API plays continuous voice playback with seamless buffer scheduling         │
+ │  5. Floating ToolCallToast displays immediate visual feedback for executed mutations      │
+ └───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ✨ Key Features
+## ⚡ Real-Time Tool Calling Schema
 
-1. **End-to-End Voice Agent Pipeline**:
-   - Single persistent WebSocket connection to `wss://agents.assemblyai.com/v1/ws`.
-   - Full-duplex conversational turn-taking with neural Voice Activity Detection.
-   - Natural interruption (barge-in): Start talking while the agent is speaking, and it immediately cuts off its speech to listen.
-2. **Bring Your Own LLM (Groq Llama-3.3-70B)**:
-   - Configured via `session.update` with an OpenAI-compatible endpoint.
-   - Eliminates rate-limit bottlenecks with 30 RPM and ~150ms latency.
-3. **Photorealistic 3D Living Room Architecture**:
-   - Hardwood oak plank flooring with soft real-time contact shadows.
-   - Floor-to-ceiling panoramic window overlooking a dynamic skyline that reacts to the time of day.
-   - Modular 3-seater sofa (Bouclé, Italian Leather, Royal Velvet, Charcoal, Emerald).
-   - Architectural coffee table (Carrara White Marble, Nero Marquina, Nordic Oak, American Walnut, Smoked Glass, Oval/Rectangle).
-   - Castiglioni arched floor lamp with real-time `PointLight` illumination.
-   - Ceramic Monstera plant, layered area rug, and Bauhaus framed wall art.
-4. **Spatial 3D Audio-Reactive EchoCore**:
-   - Floating gyroscopic holographic orb that pulses, rotates, and glows in response to audio frequencies.
-   - Drifting window sunbeams and atmospheric light motes.
-5. **High-Res Snapshot Exporter**:
-   - 1-click **Snapshot** button captures high-resolution WebGL renders with stamped branding and date metadata.
-6. **Interactive Quick-Trigger Simulator**:
-   - Instant 1-click voice prompt buttons allow full presentation and testing even without a physical microphone.
+The agent is equipped with native JSON Schema tools executed directly on the client:
 
----
-
-## 🛠️ Tool Calling Schema
-
-The agent is equipped with native JSON Schema tools:
-
-| Tool Name | Parameters | Action |
+| Tool Name | Parameters | Real-World Action |
 |---|---|---|
-| `update_furniture` | `category`, `material`, `color`, `shape` | Swaps sofa upholstery, coffee table surfaces, shapes, or area rugs. |
-| `adjust_lighting` | `preset` (`golden_hour`, `daylight`, `moody_night`, `cyberpunk_neon`) | Shifts sunlight angles, ambient warmth, window glow, and sky colors. |
-| `set_camera_view` | `view` (`overview`, `sofa_focus`, `overhead_plan`, `window_view`) | Interpolates the 3D camera smoothly using cinematic lerp damping. |
-| `toggle_fixture` | `fixture` (`floor_lamp`, `plant`), `state` (`on`, `off`, `toggle`) | Toggles physical fixtures and dynamic lighting sources. |
+| `update_furniture` | `category`, `material`, `color`, `shape`, `cushionColor` | Swaps 3D sofa upholstery (Bouclé, Italian Leather, Royal Velvet, Emerald), coffee table surfaces (Carrara White Marble, Nero Marquina, Nordic Oak, American Walnut, Smoked Glass), shapes (Oval vs. Rectangular), or area rugs. |
+| `adjust_lighting` | `preset` (`golden_hour`, `daylight`, `moody_night`, `cyberpunk_neon`) | Real-time directional sunlight angles, atmospheric sky gradients, soft ambient fill, and window area glows. |
+| `set_camera_view` | `view` (`overview`, `sofa_focus`, `overhead_plan`, `window_view`) | Interpolates the camera smoothly using cinematic lerp damping. |
+| `toggle_fixture` | `fixture` (`floor_lamp`, `plant`), `state` (`on`, `off`, `toggle`) | Toggles physical fixtures and dynamic lighting sources in the room. |
+| `reset_room` | *none* | Restores the entire living space back to default Scandinavian luxury staging. |
 
 ---
 
-## 🚀 Quick Start (Local Setup)
+## 🌟 Key Highlights & Innovations
 
-### 1. Clone the repository
+- **Zero-Friction Free Tier**: Runs 100% on free-tier infrastructure. No credit card required. Free AssemblyAI hackathon credits + free Groq API key + client-side WebGL.
+- **Barge-In Interruption**: Start speaking while the agent is replying, and the audio pipeline immediately flushes its buffer to listen to your correction.
+- **Acoustic Soundwave Ripples**: 3D concentric sound rings expand across the floorboards in sync with vocal amplitude.
+- **Holographic EchoCore**: Floating gyroscopic 3D orb that rotates, glows, and pulses to indicate agent listening, thinking, and speaking states.
+- **1-Click High-Res Snapshot Studio**: Instantly exports branded 3D renders with stamped room metadata for client presentations.
+- **Interactive Voice Simulators**: Quick-trigger buttons allow testing and screen-recording demos even without a physical microphone.
+
+---
+
+## 🚀 Getting Started (Run Locally)
+
+### 1. Clone & Install
 ```bash
 git clone https://github.com/toufiqfarhan0/echoform-3d.git
 cd echoform-3d
-```
-
-### 2. Install dependencies
-```bash
 npm install --legacy-peer-deps
 ```
 
-### 3. Setup Environment Variables (Optional)
-Create a `.env` file based on `.env.example`:
+### 2. Configure API Keys
+You can either create a `.env` file:
 ```env
 VITE_ASSEMBLYAI_API_KEY=your_assemblyai_api_key_here
 VITE_GROQ_API_KEY=your_groq_api_key_here
 ```
-*(Or simply leave it empty and enter your keys directly in the on-screen **API Keys** modal!)*
+Or launch the app and click the **API Keys** button in the header to paste your keys directly into the secure on-screen modal!
 
-### 4. Run Development Server
+### 3. Start the Studio
 ```bash
 npm run dev
 ```
@@ -140,12 +128,12 @@ Open **`http://localhost:5173/`** in your browser.
 
 | Criteria (25% each) | How EchoForm 3D Delivers |
 |---|---|
-| **Application of Technology** | End-to-end integration of AssemblyAI Voice Agent API with streaming 24kHz PCM, token minting, BYO-LLM hook, neural turn-taking, and bidirectional tool-calling. |
-| **Presentation** | Futuristic dark glassmorphic spatial HUD, floating audio-reactive 3D EchoCore orb, atmospheric sunbeams, and instant snapshot studio. |
-| **Business Value** | Solves high-cost friction in real estate staging, architectural client presentations, and e-commerce 3D room planning. |
-| **Originality** | Blends WebGL spatial computing with real-time conversational voice agents—moving far beyond simple text bots into immersive 3D world manipulation. |
+| **Application of Technology** | Advanced full-duplex WebSocket integration with AssemblyAI Voice Agent API, 24kHz Base64 PCM audio pipelines, BYO-LLM Groq routing, token minting middleware, and bidirectional client-side tool calling. |
+| **Presentation** | Futuristic glassmorphic HUD, floating audio-reactive 3D EchoCore orb, floor acoustic ripples, atmospheric sunbeams, and instant snapshot studio. |
+| **Business Value** | Dramatically accelerates high-end architectural visualization, virtual real estate staging, and 3D e-commerce furniture customizers. |
+| **Originality** | Elevates voice AI beyond simple chat text into physical 3D spatial computing—allowing users to speak physical environments into existence. |
 
 ---
 
 ## 📜 License
-MIT License. Built for the **AssemblyAI Voice Agent Hackathon** hosted by **lablab.ai**.
+MIT License. Created by Toufiq Farhan for the **AssemblyAI Voice Agent Hackathon** hosted on **lablab.ai** (September 2026).
